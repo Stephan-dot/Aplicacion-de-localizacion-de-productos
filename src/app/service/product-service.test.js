@@ -66,7 +66,7 @@ describe('addProduct service', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Base de datos no disponible' });
-    expect(databases.createDocument).toHaveBeenCalledTimes(1);
+    expect(databases.createDocument).toHaveBeenCalledOnce();
     expect(fetchProducts).not.toHaveBeenCalled();
     expect(setLoading).toHaveBeenNthCalledWith(1, true);
     expect(setLoading).toHaveBeenNthCalledWith(2, false);
@@ -85,8 +85,8 @@ describe('addProduct service', () => {
     });
 
     expect(result).toEqual({ success: true, response: createResponse });
-    expect(databases.createDocument).toHaveBeenCalledTimes(1);
-    expect(fetchProducts).toHaveBeenCalledTimes(1);
+    expect(databases.createDocument).toHaveBeenCalledOnce();
+    expect(fetchProducts).toHaveBeenCalledOnce();
     expect(setLoading).toHaveBeenNthCalledWith(1, true);
     expect(setLoading).toHaveBeenNthCalledWith(2, false);
   });

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { account, databases, storage } from '../service/appwrite-config';
 import { adminService } from '../service/admin-service';
+import { searchProducts as searchProductsHelper } from '../service/search-service';
 import { ID, Query } from 'appwrite';
 import { toast } from 'sonner';
 // GRASP: Controller - coordina las operaciones de la aplicación y actúa como punto de entrada para la lógica de negocio.
@@ -502,67 +503,14 @@ export const AppProvider= ({ children }) => {
   };
 
   const searchProducts = (query, type, maxPrice, userLocation, maxDistance = 10) => {
-  console.log("Buscando productos...", { query, type, maxPrice, userLocation, maxDistance });
-  
-  const filteredProducts = products.filter(product => {
-    // Condición para el nombre (query)
-    const matchesQuery = !query || query === '' || 
-      product.producto.toLowerCase().includes(query.toLowerCase());
-    
-    // Condición para el tipo
-    const matchesType = !type || type === 'todos' || 
-      product.tipo === type;
-    
-    // Condición para el precio
-    const matchesPrice = !maxPrice || maxPrice === 0 || 
-      product.precio <= maxPrice;
-    
-    // Condición para la ubicación (si se proporciona)
-    let matchesLocation = true;
-    if (userLocation && userLocation.lat && userLocation.lng) {
-      const distancia = calcularDistancia(
-        userLocation.lat, 
-        userLocation.lng,
-        product.ubicacion[0], 
-        product.ubicacion[1]
-      );
-      matchesLocation = distancia <= maxDistance;
-    }
-    
-    return matchesQuery && matchesType && matchesPrice && matchesLocation;
-  });
-  
-  // Ordenar: primero por votos, y si hay ubicación, agregar distancia como criterio secundario
-  return filteredProducts.sort((a, b) => {
-    // Primero ordenar por votos (mayor a menor)
-    const votosDiff = (b.verificaciones || 0) - (a.verificaciones || 0);
-    
-    if (votosDiff !== 0) return votosDiff;
-    
-    // Si hay ubicación del usuario, ordenar por distancia (más cercano primero)
-    if (userLocation && userLocation.lat && userLocation.lng) {
-      const distanciaA = calcularDistancia(
-        userLocation.lat, 
-        userLocation.lng,
-        a.ubicacion[0], 
-        a.ubicacion[1]
-      );
-      const distanciaB = calcularDistancia(
-        userLocation.lat, 
-        userLocation.lng,
-        b.ubicacion[0], 
-        b.ubicacion[1]
-      );
-      return distanciaA - distanciaB;
-    }
-    
-    return 0;
-  });
-};
+    console.log('Buscando productos...', { query, type, maxPrice, userLocation, maxDistance });
+    return searchProductsHelper(products, query, type, maxPrice, userLocation, maxDistance);
+  };
+
   const obtenerUbicacionUsuario = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject("Geolocalización no soportada");
+        reject('Geolocalización no soportada');
       } else {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -577,18 +525,6 @@ export const AppProvider= ({ children }) => {
         );
       }
     });
-  };
-
-  const calcularDistancia = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radio de la Tierra en km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Distancia en km
   };
 
   return (
