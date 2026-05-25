@@ -3,7 +3,7 @@ import { Home, Search, MapPin, User, ShieldCheck, PlusCircle } from 'lucide-reac
 import { useApp } from '../contexts/AppContext';
 import { motion } from 'motion/react';
 
-// GRASP: Controller - decide qué rutas mostrar en la navegación según el usuario.
+
 export default function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();

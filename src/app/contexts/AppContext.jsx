@@ -407,7 +407,6 @@ export const AppProvider= ({ children }) => {
     }finally{
       setLoading(false);
     }
-    //setProducts(products.filter(p => p.id !== id));
   };
 
   const voteProduct = async (productId, vote) => {

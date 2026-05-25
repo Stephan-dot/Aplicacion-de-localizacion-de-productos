@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Store } from 'lucide-react';
 
 // GRASP: Information Expert - este componente sabe cómo agrupar mapas y marcadores según productos y comercios.
-export default function CubaMap() {
+
 
 // Solucionar problema de iconos
 delete L.Icon.Default.prototype._getIconUrl;
@@ -178,5 +178,5 @@ export default function CubaMap({ onProductSelect, selectedProductFromSearch }) 
       />
       {onProductSelect && <MapMarkers onProductSelect={onProductSelect} selectedProductFromSearch={selectedProductFromSearch} />}
     </MapContainer>
-  );}
+  );
 }
