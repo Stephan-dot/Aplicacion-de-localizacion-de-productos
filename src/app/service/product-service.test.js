@@ -153,7 +153,6 @@ describe('AGREGAR PRODUCTO', () => {
   });
 });
 
-// product-service.test.js - Añadir dentro del describe principal o crear nuevo describe
 
 describe('editProduct service', () => {
   beforeEach(() => {

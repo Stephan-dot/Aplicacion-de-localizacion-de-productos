@@ -11,13 +11,15 @@ export default function Login() {
   const navigate = useNavigate();
   const {register, handleSubmit, formState: {errors}}= useForm({mode: 'onChange'})
   
-  const onSubmit = (data) => { 
-    const response = login(data.email, data.password); 
-    if (response) {
-      toast.success('¡Bienvenido a Donde Hay Cuba!');
+  const onSubmit = async (data) => { 
+    const response = await login(data.email, data.password); 
+    
+    if (response.success) {
+      console.log("Respuesta del login:", response);
+      toast.success(response.message);
       navigate('/home');
     } else {
-      toast.error('Credenciales incorrectas');
+      toast.error(response.error);
     }
   };
 

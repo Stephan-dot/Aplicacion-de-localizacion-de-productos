@@ -23,18 +23,23 @@ export const AppProvider= ({ children }) => {
       setCurrentUser(user);
       await fetchData();
     }
+    if(currentUser && currentUser.labels?.[0] === 'admin'){
+      fetchUsers();
+    }
     loadData(); 
   }, []);
 
+  const fetchUsers= async()=>{
+    const dbusers = await adminService.getAllUsers(); 
+    setUsers(dbusers); 
+  }
   const fetchData = async()=>{
     setLoading(true);
     try {
       const productos = await fetchpProductos(); 
       const comercios = await fetchComercios();
       const comentarios = await fetchComments(); 
-      const dbusers = await adminService.getAllUsers()
-
-      setUsers(dbusers.data); 
+    
       setProducts(productos);
       setCommerces(comercios);
       setComments(comentarios);
@@ -56,17 +61,11 @@ export const AppProvider= ({ children }) => {
         return;
       }
       let response = []; 
-      if (currentUser.labels[0] === 'admin') {
-        response = await databases.listDocuments(
-          import.meta.env.VITE_DATABASE_ID,
-          import.meta.env.VITE_COMMERCE_COLLECTION_ID,
-         );
-      }else{
-        response = await databases.listDocuments(
-          import.meta.env.VITE_DATABASE_ID,
-          import.meta.env.VITE_COMMERCE_COLLECTION_ID,
-          [Query.equal('userId', currentUser.$id)]
-          );}
+
+      response = await databases.listDocuments(
+        import.meta.env.VITE_DATABASE_ID,
+        import.meta.env.VITE_COMMERCE_COLLECTION_ID,
+        );
       setCommerces(response.documents);
       return response.documents; 
     } catch (error) {
@@ -87,18 +86,12 @@ export const AppProvider= ({ children }) => {
         return;
       }
       let response = []; 
-      if (currentUser.labels[0] === 'admin') {
-        response = await databases.listDocuments(
-          import.meta.env.VITE_DATABASE_ID,
-          import.meta.env.VITE_PRODUCTS_COLLECTION_ID,
-         );
-         console.log('Productos obtenidos:', response.documents);
-      }else{
-        response = await databases.listDocuments(
-          import.meta.env.VITE_DATABASE_ID,
-          import.meta.env.VITE_PRODUCTS_COLLECTION_ID,
-          [Query.equal('userId', currentUser.$id)]
-          );console.log('Productos obtenidos:', response.documents);}
+      
+      response = await databases.listDocuments(
+        import.meta.env.VITE_DATABASE_ID,
+        import.meta.env.VITE_PRODUCTS_COLLECTION_ID,
+        );
+      console.log('Productos obtenidos:', response.documents);
       setProducts(response.documents);
       return response.documents;
     } catch (error) {
@@ -119,17 +112,11 @@ export const AppProvider= ({ children }) => {
         return;
       }
       let response = []; 
-      if (currentUser.labels[0] === 'admin') {
-        response = await databases.listDocuments(
-          import.meta.env.VITE_DATABASE_ID,
-          import.meta.env.VITE_COMMENTS_COLLECTION_ID,
-         );
-      }else{
-        response = await databases.listDocuments(
-          import.meta.env.VITE_DATABASE_ID,
-          import.meta.env.VITE_COMMENTS_COLLECTION_ID,
-          [Query.equal('userId', currentUser.$id)]
-          );}
+
+      response = await databases.listDocuments(
+        import.meta.env.VITE_DATABASE_ID,
+        import.meta.env.VITE_COMMENTS_COLLECTION_ID,
+        );
       setComments(response.documents);
       return response.documents;
     } catch (error) {
@@ -143,33 +130,52 @@ export const AppProvider= ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try { 
-      const response = await account.createEmailPasswordSession(email, password);
-      if(response){
-        const dbusers = await adminService.getAllUsers();
-        console.log('Usuarios obtenidos:', dbusers); 
-        const user = dbusers.data.find(u => u.email === email);
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        setCurrentUser(user);
-        setUsers(dbusers.data);
-        localStorage.setItem('usersList', JSON.stringify(dbusers.data));
-        await fetchData();
-        return true;
-      }
+      const sesion = await account.createEmailPasswordSession(email, password);
+      const user = await account.get();
+
+      setCurrentUser(user);
+      await fetchData();
+
+      return {success: true, message: `Bienvenido ${user.name || user.email}`};
+
     } catch (error) {
       console.error('Error logging in:', error);
+
+      if (error.code === 401) {
+        console.error('Credenciales incorrectas');
+        return {success: false, error: 'Credenciales incorrectas'};
+      } else if (error.code === 429) {
+        console.error('Demasiados intentos, espere un momento');
+        return {success: false, error: 'Demasiados intentos, espere un momento'};
+      } else if (error.code === 403) {
+        console.error('Cuenta de Usuario Bloqueda');
+        return {success: false, error: 'No puede acceder al ssitema. Cuenta de Usuario Bloqueda'};
+      } else if (error.message === 'Failed to fetch' || 
+        error.code === 'ERR_NETWORK' ||
+        error.toString().includes('Failed to fetch')) {
+        return {
+          success: false, 
+          error: '⚠️ Sin conexión a internet. Verifica tu red e intenta nuevamente.'
+        };
+      } else if (error.message?.includes('ERR_EMPTY_RESPONSE')) {
+        return {
+          success: false, 
+          error: '⚠️ El servidor no responde. Verifica tu conexión a internet.'
+        };
+      } else {
+        console.error('Error al iniciar sesión:', error.message);
+        return {success: false, error: "Error al iniciar sesión"};
+      }
     }finally{
       setLoading(false);
     }
-    return false;
   };
 
   const registro =async (userData) => {
     setLoading(true);
     const newUser = {
       ...userData,
-      id: Date.now().toString(),
-      role: 'user',
-      blocked: false,
+      id: Date.now().toString()
     };
     console.log('Registering user:', newUser);
     console.log('Registro recibido', userData)
@@ -182,10 +188,13 @@ export const AppProvider= ({ children }) => {
             newUser.phone,     
         );
         if(response){
-          setUsers([...users, newUser]);
           setCurrentUser(newUser);
-          localStorage.setItem('currentUser', JSON.stringify(newUser));
           return true;
+        }else{
+          return { 
+                success: false, 
+                error: 'Registron invalido. Revise su conexion'
+            }
         } 
     } catch (error) {
         console.log(error.message);  
